@@ -22,12 +22,12 @@ function RefreshTime( p_refreshMethod, p_frequence ){
     } else {
         frequence = parseInt( p_frequence ) ;
     }
-    var method      = p_refreshMethod ;
-    var lastTime    = 0 ;
-    var stoped      = false ;
-    var waiting     = false ;
-    var calledTimes = 0 ;
-    var currentIndex = 0 ;
+    var method          = p_refreshMethod ;
+    var lastTime        = 0 ;
+    var stoped          = false ;
+    var waiting         = false ;
+    var calledTimes     = 0 ;
+    var currentIndex    = 0 ;
     var repetitionTimesPerIndex = 10 ;
     this.setRepetitionTimes = (times)=>{
         repetitionTimesPerIndex = (repetitionTimesPerIndex>0)?repetitionTimesPerIndex:1;
@@ -43,6 +43,29 @@ function RefreshTime( p_refreshMethod, p_frequence ){
             currentIndex = limit ;
         }
     }
+    function startTimeout(time){
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(function(){
+            waiting = false ;
+            lastTime = new Date() ;
+            method() ;
+        }, time) ;
+    }
+    function getFrequency(){
+        var calledFrequence = frequence ;
+        if(progrecive){
+            refreshCurrent() ;
+            calledFrequence = frequence[ currentIndex ] ;
+        }
+        return calledFrequence ;
+    }
+    function getFrequencyLessDiff(){
+        var calledFrequence = getFrequency() ;
+        //console.log("atualizando",calledTimes);
+        var now = new Date() ;
+        var diff = (now - lastTime)  ;
+        return calledFrequence - diff ;
+    }
     /**
      * Precisa chamar o metodo resolved assim que o metodo assincrono se resolver para ser chamado novamente
      */
@@ -50,18 +73,11 @@ function RefreshTime( p_refreshMethod, p_frequence ){
         if(stoped || waiting){
             return ;
         }
-        var calledFrequence = frequence ;
+        var freqLessDiff = getFrequencyLessDiff();
         calledTimes++ ;
         //avoid int change to negative when limit size
         calledTimes = Math.abs(calledTimes) ;
-        if(progrecive){
-            refreshCurrent() ;
-            calledFrequence = frequence[ currentIndex ] ;
-        }
-        //console.log("atualizando",calledTimes);
-        var now = new Date() ;
-        var diff = (now - lastTime)  ;
-        if(diff - calledFrequence >= 0 ){
+        if(freqLessDiff < 0 ){
             //passou do ponto, chama de novo
             lastTime = new Date() ;
             method() ;
@@ -69,12 +85,7 @@ function RefreshTime( p_refreshMethod, p_frequence ){
         }
         waiting = true ;
         //chama depois de um tempo
-        clearTimeout(timeoutId);
-        timeoutId = setTimeout(function(){
-            waiting = false ;
-            lastTime = new Date() ;
-            method() ;
-        }, calledFrequence - diff) ;
+        startTimeout(freqLessDiff);
     }
     var started = false ;
     /**
@@ -87,6 +98,7 @@ function RefreshTime( p_refreshMethod, p_frequence ){
         started = true ;
         stoped = false ;
         me.resolved() ;
+        startTimeout( getFrequencyLessDiff() ) ;
     }
     /**
      * Chamar reset quando quiser que se comporte como no início

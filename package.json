@@ -1,6 +1,6 @@
 {
   "name": "node-arm-refresh-in-time",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "To call in minimal frequence without overlap and diferent custom frequences.",
   "main": "index.js",
   "scripts": {
